@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { BookOpen, Star, ShoppingCart, Check } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../../context/CartContext';
 
 export default function LivrosPage() {
   const { addToCart } = useCart();

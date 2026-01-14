@@ -2,20 +2,22 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Home, BookOpen, Video, Gamepad, Mail, Scissors, ShoppingCart, Menu, X } from 'lucide-react';
+import { Home, BookOpen, Video, Gamepad, Mail, Scissors, ShoppingCart, Menu, X, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const { toggleCart, items } = useCart();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Início', href: '/', icon: Home },
-    { name: 'Livros', href: '/livros', icon: BookOpen },
-    { name: 'Vídeos', href: '/videos', icon: Video },
-    { name: 'Jogos', href: '/jogos', icon: Gamepad },
-    { name: 'Atividades', href: '/atividades', icon: Scissors },
-    { name: 'Contato', href: '/contato', icon: Mail },
+    { name: 'Livros', href: '/pages/livros', icon: BookOpen },
+    { name: 'Vídeos', href: '/pages/videos', icon: Video },
+    { name: 'Jogos', href: '/pages/jogos', icon: Gamepad },
+    { name: 'Atividades', href: '/pages/atividades', icon: Scissors },
+    { name: 'Contato', href: '/pages/contato', icon: Mail },
   ];
 
   return (
@@ -62,6 +64,27 @@ const Navbar = () => {
                 </span>
               )}
             </button>
+
+            {/* Profile Button */}
+            {user ? (
+              <Link 
+                href="/pages/perfil"
+                className="flex items-center gap-2 p-2 rounded-full text-pink-600 hover:bg-pink-50 transition-colors ml-1 border border-transparent hover:border-pink-200"
+                title={`Olá, ${user.name}`}
+              >
+                <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5" />
+                </div>
+              </Link>
+            ) : (
+              <Link 
+                href="/pages/login"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-pink-600 font-bold hover:bg-pink-50 transition-colors ml-1"
+              >
+                <User className="w-5 h-5" />
+                <span>Entrar</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Buttons */}
@@ -77,6 +100,27 @@ const Navbar = () => {
                 </span>
               )}
             </button>
+            
+            {/* Mobile Profile Button */}
+            {user ? (
+              <Link 
+                href="/pages/perfil"
+                className="p-2 text-pink-600 hover:bg-pink-50 rounded-full transition-colors"
+                title={`Olá, ${user.name}`}
+              >
+                <div className="w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4" />
+                </div>
+              </Link>
+            ) : (
+               <Link 
+                href="/pages/login"
+                className="p-2 text-pink-600 hover:bg-pink-50 rounded-full transition-colors"
+              >
+                <User className="w-6 h-6" />
+              </Link>
+            )}
+
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"

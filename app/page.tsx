@@ -14,11 +14,11 @@ export default function Home() {
         </p>
         
         <div className="flex flex-wrap justify-center gap-4">
-          <Link href="/jogos" className="bg-pink-500 text-white px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-pink-600 hover:scale-105 transition-all flex items-center gap-2">
+          <Link href="/pages/jogos" className="bg-pink-500 text-white px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-pink-600 hover:scale-105 transition-all flex items-center gap-2">
             <Gamepad className="w-6 h-6" />
             Jogos Educativos!
           </Link>
-          <Link href="/livros" className="bg-white text-pink-500 border-2 border-pink-500 px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-pink-50 hover:scale-105 transition-all flex items-center gap-2">
+          <Link href="/pages/livros" className="bg-white text-pink-500 border-2 border-pink-500 px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-pink-50 hover:scale-105 transition-all flex items-center gap-2">
             <BookOpen className="w-6 h-6" />
             Livros Mágicos!
           </Link>
@@ -34,7 +34,7 @@ export default function Home() {
             icon: BookOpen,
             color: 'bg-blue-100',
             textColor: 'text-blue-500',
-            href: '/livros'
+            href: '/pages/livros'
           },
           {
             title: 'Vídeos Divertidos',
@@ -42,7 +42,7 @@ export default function Home() {
             icon: Video,
             color: 'bg-purple-100',
             textColor: 'text-purple-500',
-            href: '/videos'
+            href: '/pages/videos'
           },
           {
             title: 'Jogos Educativos',
@@ -50,7 +50,7 @@ export default function Home() {
             icon: Gamepad,
             color: 'bg-green-100',
             textColor: 'text-green-500',
-            href: '/jogos'
+            href: '/pages/jogos'
           }
         ].map((card, index) => {
           const Icon = card.icon;

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Scissors, Clock, Users, Star, ShoppingBag } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../../context/CartContext';
 
 export default function AtividadesPage() {
   const { addToCart } = useCart();

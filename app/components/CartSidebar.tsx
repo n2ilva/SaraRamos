@@ -2,21 +2,38 @@
 
 import { X, Trash2, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const CartSidebar = () => {
-  const { items, removeFromCart, isOpen, toggleCart, total } = useCart();
+  const { items, removeFromCart, isOpen, toggleCart, total, clearCart } = useCart();
+  const { user, addPurchase } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const router = useRouter();
 
   if (!isOpen) return null;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
+    if (!user) {
+      alert('Por favor, faça login para finalizar a compra.');
+      toggleCart();
+      router.push('/pages/login');
+      return;
+    }
+
     setIsCheckingOut(true);
-    // Simulate checkout
-    setTimeout(() => {
-      alert('Checkout simulado! Implementar gateway de pagamento real.');
+    setIsCheckingOut(true);
+    try {
+      await addPurchase(items, total);
+      clearCart();
+      toggleCart();
+      router.push('/pages/perfil'); // Go to profile to see order
+    } catch {
+      alert('Erro ao processar compra. Tente novamente.');
+    } finally {
       setIsCheckingOut(false);
-    }, 1500);
+    }
   };
 
   return (
