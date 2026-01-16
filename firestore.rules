@@ -1,20 +1,38 @@
 rules_version = '2';
 
+// Firebase Firestore Rules para Sara Ramos
+// Cole essas regras em: Firebase Console -> Firestore Database -> Rules
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Regras para a coleção 'users'
+    
+    // Users collection - dados dos usuários
     match /users/{userId} {
+      // Usuários podem ler seus próprios dados
+      allow read: if request.auth != null && request.auth.uid == userId;
       
-      // Permitir leitura e escrita APENAS se o usuário estiver autenticado
-      // e o ID do documento for igual ao ID do usuário logado (request.auth.uid)
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Usuários podem criar seu documento no cadastro
+      allow create: if request.auth != null && request.auth.uid == userId;
       
+      // Usuários podem atualizar seus próprios dados
+      allow update: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Bloquear acesso a qualquer outra coleção por padrão (segurança total)
-    match /{document=**} {
-      allow read, write: if false;
+    
+    // Products collection - produtos da plataforma
+    match /products/{productId} {
+      // Qualquer pessoa pode visualizar produtos (mesmo sem login)
+      allow read: if true;
+      
+      // Apenas usuários autenticados podem criar/editar/excluir produtos
+      // (a verificação de admin é feita no lado do cliente)
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // Orders collection - pedidos (se usar no futuro)
+    match /orders/{orderId} {
+      allow read: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null;
     }
   }
 }

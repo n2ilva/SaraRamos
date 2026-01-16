@@ -17,6 +17,7 @@ export interface User {
   name: string;
   email: string;
   purchases: Purchase[];
+  isAdmin: boolean; // New: Admin flag
 }
 
 export interface Purchase {
@@ -29,6 +30,7 @@ export interface Purchase {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -36,6 +38,13 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// List of admin emails
+const ADMIN_EMAILS = [
+  'natanael2ilva@gmail.com',
+  'sararamos.prof@gmail.com',
+  'sararamos.souza@gmail.com',
+];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -46,21 +55,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDoc = await getDoc(userDocRef);
 
+      // Check if user is admin (by email or Firestore field)
+      const isAdminByEmail = ADMIN_EMAILS.includes(firebaseUser.email || '');
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        const isAdminByFirestore = userData.isAdmin === true;
+        
         setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
           name: userData.name || 'Usuário',
-          purchases: userData.purchases || []
+          purchases: userData.purchases || [],
+          isAdmin: isAdminByEmail || isAdminByFirestore
         });
       } else {
-        // Should not happen if registered correctly, but handle gracefully
         setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
           name: 'Usuário',
-          purchases: []
+          purchases: [],
+          isAdmin: isAdminByEmail
         });
       }
     } catch (error) {
@@ -72,10 +87,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in, fetch data from Firestore
         await fetchUserData(firebaseUser);
       } else {
-        // User is signed out
         setUser(null);
       }
       setLoading(false);
@@ -86,29 +99,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged will handle setting the user
   };
 
   const register = async (name: string, email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const { user: newUser } = userCredential;
 
-    // Create user document in Firestore
+    const isAdmin = ADMIN_EMAILS.includes(email);
+
     const userData = {
       name,
       email,
       createdAt: new Date().toISOString(),
-      purchases: []
+      purchases: [],
+      isAdmin
     };
 
     await setDoc(doc(db, 'users', newUser.uid), userData);
 
-    // Set local state immediately to improve UX (though onAuthStateChanged will eventually fire)
     setUser({
       id: newUser.uid,
       name,
       email,
-      purchases: []
+      purchases: [],
+      isAdmin
     });
   };
 
@@ -133,7 +147,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         purchases: arrayUnion(newPurchase)
       });
       
-      // Update local state optimistic logic
       setUser(prev => prev ? { ...prev, purchases: [newPurchase, ...prev.purchases] } : null);
 
     } catch (error) {
@@ -142,8 +155,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const isAdmin = user?.isAdmin || false;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, addPurchase }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, login, register, logout, addPurchase }}>
       {children}
     </AuthContext.Provider>
   );

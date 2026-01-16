@@ -2,21 +2,20 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Home, BookOpen, Video, Gamepad, Mail, Scissors, ShoppingCart, Menu, X, User } from 'lucide-react';
+import { Home, Video, Gamepad, Mail, Scissors, ShoppingCart, Menu, X, User, Settings } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const { toggleCart, items } = useCart();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Início', href: '/', icon: Home },
-    { name: 'Livros', href: '/pages/livros', icon: BookOpen },
+    { name: 'Atividades', href: '/pages/atividades', icon: Scissors },
     { name: 'Vídeos', href: '/pages/videos', icon: Video },
     { name: 'Jogos', href: '/pages/jogos', icon: Gamepad },
-    { name: 'Atividades', href: '/pages/atividades', icon: Scissors },
     { name: 'Contato', href: '/pages/contato', icon: Mail },
   ];
 
@@ -50,6 +49,17 @@ const Navbar = () => {
                 </Link>
               );
             })}
+             
+             {/* Admin Button - Only visible to admins */}
+            {isAdmin && (
+              <Link
+                href="/pages/admin"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-all duration-300 font-medium group border border-purple-200"
+              >
+                <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                <span>Admin</span>
+              </Link>
+            )}
              
              {/* Cart Button Desktop */}
             <button 
@@ -89,6 +99,16 @@ const Navbar = () => {
 
           {/* Mobile Buttons */}
           <div className="md:hidden flex items-center gap-2">
+            {/* Admin Button Mobile */}
+            {isAdmin && (
+              <Link 
+                href="/pages/admin"
+                className="p-2 text-purple-600 hover:bg-purple-50 rounded-full transition-colors"
+              >
+                <Settings className="w-6 h-6" />
+              </Link>
+            )}
+            
             <button 
               onClick={toggleCart} 
               className="p-2 relative text-pink-500 hover:bg-pink-50 rounded-full transition-colors"
@@ -149,6 +169,18 @@ const Navbar = () => {
                 </Link>
               );
             })}
+            
+            {/* Admin Link in Mobile Menu */}
+            {isAdmin && (
+              <Link
+                href="/pages/admin"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-purple-600 hover:bg-purple-50 font-medium transition-colors border-t border-gray-100 mt-2 pt-4"
+              >
+                <Settings className="w-5 h-5" />
+                <span>Painel Admin</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

@@ -1,42 +1,237 @@
+'use client';
 
-import { Video, PlayCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Video, ShoppingBag, Loader2, Filter, TrendingUp, X, Play } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
+import { useProducts, ProductCategory, categoryLabels } from '../../context/ProductsContext';
+
+type FilterType = 'all' | 'popular' | ProductCategory;
+
+const filterOptions: { value: FilterType; label: string; color: string }[] = [
+  { value: 'all', label: '✨ Todos', color: 'bg-gray-100 text-gray-700 hover:bg-gray-200' },
+  { value: 'popular', label: '🔥 Mais Assistidos', color: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },
+  { value: 'alfabetizacao', label: '📖 Aprendendo a Ler', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
+  { value: 'escrita', label: '✏️ Aprendendo a Escrever', color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' },
+  { value: 'matematica', label: '🔢 Matemática', color: 'bg-green-100 text-green-700 hover:bg-green-200' },
+  { value: 'logica', label: '🧩 Lógica e Raciocínio', color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
+  { value: 'coordenacao', label: '✋ Coordenação Motora', color: 'bg-pink-100 text-pink-700 hover:bg-pink-200' },
+  { value: 'artes', label: '🎨 Artes e Criatividade', color: 'bg-rose-100 text-rose-700 hover:bg-rose-200' },
+  { value: 'ciencias', label: '🔬 Ciências e Natureza', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' },
+  { value: 'musica', label: '🎵 Musicalização', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200' },
+  { value: 'socioemocional', label: '💝 Socioemocional', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
+];
 
 export default function VideosPage() {
-  const videos = [
-    { title: "Aprendendo o Alfabeto", duration: "10:00", color: "bg-red-500" },
-    { title: "Números Divertidos", duration: "05:30", color: "bg-blue-500" },
-    { title: "As Cores do Arco-íris", duration: "03:45", color: "bg-purple-500" },
-    { title: "Animais da Fazenda", duration: "08:20", color: "bg-green-500" },
-  ];
+  const { addToCart } = useCart();
+  const { products, loading } = useProducts();
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filter only active "video" products
+  const videos = useMemo(() => {
+    let filtered = products.filter(p => p.type === 'video' && p.isActive);
+
+    // Apply category filter
+    if (activeFilter === 'popular') {
+      // Sort by purchaseCount (most purchased first)
+      filtered = [...filtered].sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+    } else if (activeFilter !== 'all') {
+      filtered = filtered.filter(p => p.category === activeFilter);
+    }
+
+    return filtered;
+  }, [products, activeFilter]);
+
+  const formatPrice = (cents: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(cents / 100);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-pink-600 mb-4 flex items-center justify-center gap-3">
           <Video className="w-10 h-10" />
           Vídeos Educativos
         </h1>
-        <p className="text-xl text-gray-500">Aprenda assistindo vídeos divertidos!</p>
+        <p className="text-xl text-gray-500 max-w-3xl mx-auto">
+          Aprenda brincando com nossos vídeos! Conteúdos audiovisuais que complementam o aprendizado de forma lúdica e divertida.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {videos.map((video, index) => (
-          <div key={index} className="bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-100 group cursor-pointer">
-            <div className={`aspect-video ${video.color} relative flex items-center justify-center bg-opacity-80`}>
-              <div className="w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                <PlayCircle className="w-10 h-10 text-white fill-current" />
-              </div>
-              <span className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded-md text-sm font-medium">
-                {video.duration}
-              </span>
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-pink-600 transition-colors">{video.title}</h3>
-              <p className="text-gray-500">Clique para assistir e aprender.</p>
-            </div>
-          </div>
-        ))}
+      {/* Filter Toggle Button (Mobile) */}
+      <div className="md:hidden mb-4">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 font-medium shadow-sm"
+        >
+          <Filter className="w-5 h-5" />
+          Filtros
+          {activeFilter !== 'all' && (
+            <span className="bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full">1</span>
+          )}
+        </button>
       </div>
+
+      {/* Filters */}
+      <div className={`mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-gray-500" />
+            <span className="font-semibold text-gray-700">Filtrar por:</span>
+            {activeFilter !== 'all' && (
+              <button
+                onClick={() => setActiveFilter('all')}
+                className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-4 h-4" />
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {filterOptions.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setActiveFilter(filter.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeFilter === filter.value
+                    ? 'bg-purple-500 text-white shadow-md scale-105'
+                    : filter.color
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Results count */}
+      {activeFilter !== 'all' && (
+        <div className="mb-6 flex items-center gap-2 text-gray-600">
+          {activeFilter === 'popular' && <TrendingUp className="w-5 h-5 text-orange-500" />}
+          <span>
+            {videos.length} {videos.length === 1 ? 'resultado' : 'resultados'}
+            {activeFilter !== 'popular' && (
+              <> em <strong>{categoryLabels[activeFilter]}</strong></>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {videos.length === 0 ? (
+        <div className="text-center py-16">
+          <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg">
+            {activeFilter === 'all' 
+              ? 'Nenhum vídeo disponível no momento'
+              : 'Nenhum vídeo encontrado nesta categoria'
+            }
+          </p>
+          {activeFilter !== 'all' && (
+            <button
+              onClick={() => setActiveFilter('all')}
+              className="mt-4 text-pink-500 font-medium hover:underline"
+            >
+              Ver todos os vídeos
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {videos.map((video) => (
+            <div 
+              key={video.id} 
+              className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group"
+            >
+              {/* Thumbnail */}
+              <div className="relative aspect-video overflow-hidden">
+                {video.imageUrl ? (
+                  <img
+                    src={video.imageUrl}
+                    alt={video.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                    <Video className="w-16 h-16 text-purple-500 opacity-50" />
+                  </div>
+                )}
+                {/* Play button overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white/90 p-4 rounded-full shadow-lg">
+                    <Play className="w-8 h-8 text-pink-600 fill-current" />
+                  </div>
+                </div>
+                {/* Category Badge */}
+                {video.category && video.category !== 'geral' && (
+                  <div className="absolute top-3 left-3">
+                    <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium shadow-sm">
+                      {categoryLabels[video.category]}
+                    </span>
+                  </div>
+                )}
+                {/* Popular Badge */}
+                {(video.purchaseCount || 0) > 10 && (
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> Popular
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-grow">
+                <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium w-fit mb-3">
+                  🎬 Vídeo Educativo
+                </span>
+
+                <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                  {video.title}
+                </h2>
+
+                {video.description && (
+                  <p className="text-gray-600 mb-4 line-clamp-3 flex-grow">
+                    {video.description}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-2xl font-bold text-pink-600">
+                    {formatPrice(video.price)}
+                  </span>
+                  <button 
+                    onClick={() => addToCart({
+                      id: video.id,
+                      title: video.title,
+                      price: video.price,
+                      type: 'video'
+                    })}
+                    className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white px-5 py-3 rounded-xl font-bold hover:from-pink-600 hover:to-pink-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

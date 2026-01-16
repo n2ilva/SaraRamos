@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpen, Video, Gamepad, Sparkles } from 'lucide-react';
+import { Video, Gamepad, Sparkles, Scissors } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -18,9 +18,9 @@ export default function Home() {
             <Gamepad className="w-6 h-6" />
             Jogos Educativos!
           </Link>
-          <Link href="/pages/livros" className="bg-white text-pink-500 border-2 border-pink-500 px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-pink-50 hover:scale-105 transition-all flex items-center gap-2">
-            <BookOpen className="w-6 h-6" />
-            Livros Mágicos!
+          <Link href="/pages/atividades" className="bg-white text-pink-500 border-2 border-pink-500 px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:bg-pink-50 hover:scale-105 transition-all flex items-center gap-2">
+            <Scissors className="w-6 h-6" />
+            Atividades para Sala!
           </Link>
         </div>
       </section>
@@ -29,12 +29,12 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-1 md:grid-cols-3 gap-8">
         {[
           {
-            title: 'Livros Mágicos',
-            desc: 'Histórias encantadas para ler e imaginar.',
-            icon: BookOpen,
-            color: 'bg-blue-100',
-            textColor: 'text-blue-500',
-            href: '/pages/livros'
+            title: 'Atividades Pedagógicas',
+            desc: 'Recursos especiais para professores aplicarem em sala de aula.',
+            icon: Scissors,
+            color: 'bg-yellow-100',
+            textColor: 'text-yellow-600',
+            href: '/pages/atividades'
           },
           {
             title: 'Vídeos Divertidos',

@@ -1,134 +1,233 @@
 'use client';
 
-import { useState } from 'react';
-import { Scissors, Clock, Users, Star, ShoppingBag } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Scissors, ShoppingBag, Loader2, Filter, TrendingUp, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useProducts, ProductCategory, categoryLabels } from '../../context/ProductsContext';
+
+type FilterType = 'all' | 'popular' | ProductCategory;
+
+const filterOptions: { value: FilterType; label: string; color: string }[] = [
+  { value: 'all', label: '✨ Todos', color: 'bg-gray-100 text-gray-700 hover:bg-gray-200' },
+  { value: 'popular', label: '🔥 Mais Comprados', color: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },
+  { value: 'alfabetizacao', label: '📖 Aprendendo a Ler', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
+  { value: 'escrita', label: '✏️ Aprendendo a Escrever', color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' },
+  { value: 'matematica', label: '🔢 Matemática', color: 'bg-green-100 text-green-700 hover:bg-green-200' },
+  { value: 'logica', label: '🧩 Lógica e Raciocínio', color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
+  { value: 'coordenacao', label: '✋ Coordenação Motora', color: 'bg-pink-100 text-pink-700 hover:bg-pink-200' },
+  { value: 'artes', label: '🎨 Artes e Criatividade', color: 'bg-rose-100 text-rose-700 hover:bg-rose-200' },
+  { value: 'ciencias', label: '🔬 Ciências e Natureza', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' },
+  { value: 'musica', label: '🎵 Musicalização', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200' },
+  { value: 'socioemocional', label: '💝 Socioemocional', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
+];
 
 export default function AtividadesPage() {
   const { addToCart } = useCart();
+  const { products, loading } = useProducts();
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const activities = [
-    {
-      title: "Arte com Colagem de Folhas",
-      subject: "Artes",
-      ageGroup: "3-5 anos",
-      duration: "40 min",
-      description: "Uma atividade divertida para explorar a natureza. Os alunos coletam folhas no pátio e criam animais divertidos colando-as no papel.",
-      materials: ["Folhas secas", "Cola branca", "Papel A4", "Lápis de cor"],
-      color: "bg-green-100",
-      iconColor: "text-green-600",
-      price: "R$ 9,90"
-    },
-    {
-      title: "Matemática com Massinha",
-      subject: "Matemática",
-      ageGroup: "4-6 anos",
-      duration: "30 min",
-      description: "Usando massinha de modelar para criar números e formas geométricas. Ótimo para coordenação motora fina e reconhecimento numérico.",
-      materials: ["Massinha de modelar colorida", "Cartões com números"],
-      color: "bg-blue-100",
-      iconColor: "text-blue-600",
-      price: "R$ 12,90"
-    },
-    {
-      title: "Teatro de Fantoches",
-      subject: "Expressão Oral",
-      ageGroup: "5-7 anos",
-      duration: "1 hora",
-      description: "Criação de fantoches simples usando meias velhas ou sacos de papel. As crianças apresentam pequenas histórias para a turma.",
-      materials: ["Meias ou sacos de papel", "Lã", "Botões", "Cola quente"],
-      color: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      price: "R$ 14,90"
-    },
-    {
-      title: "Circuito das Cores",
-      subject: "Educação Física",
-      ageGroup: "3-6 anos",
-      duration: "50 min",
-      description: "Um circuito onde as crianças devem pular apenas nos arcos da cor que a professora falar. Trabalha agilidade e reconhecimento de cores.",
-      materials: ["Arcos coloridos (bambolês)", "Cones"],
-      color: "bg-red-100",
-      iconColor: "text-red-600",
-      price: "R$ 8,90"
+  // Filter only active "atividade" products
+  const atividades = useMemo(() => {
+    let filtered = products.filter(p => p.type === 'atividade' && p.isActive);
+
+    // Apply category filter
+    if (activeFilter === 'popular') {
+      // Sort by purchaseCount (most purchased first)
+      filtered = [...filtered].sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+    } else if (activeFilter !== 'all') {
+      filtered = filtered.filter(p => p.category === activeFilter);
     }
-  ];
+
+    return filtered;
+  }, [products, activeFilter]);
+
+  const formatPrice = (cents: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(cents / 100);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-pink-600 mb-4 flex items-center justify-center gap-3">
-            <Scissors className="w-10 h-10" />
-            Atividades Pedagógicas
-          </h1>
-          <p className="text-xl text-gray-500 max-w-3xl mx-auto">
-            Recursos especiais para professores. Encontre inspiração para suas aulas com planos de aula criativos e educativos.
-          </p>
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      {/* Header */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-pink-600 mb-4 flex items-center justify-center gap-3">
+          <Scissors className="w-10 h-10" />
+          Atividades Pedagógicas
+        </h1>
+        <p className="text-xl text-gray-500 max-w-3xl mx-auto">
+          Recursos especiais para professores. Encontre inspiração para suas aulas com planos de aula criativos e educativos.
+        </p>
+      </div>
+
+      {/* Filter Toggle Button (Mobile) */}
+      <div className="md:hidden mb-4">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 font-medium shadow-sm"
+        >
+          <Filter className="w-5 h-5" />
+          Filtros
+          {activeFilter !== 'all' && (
+            <span className="bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full">1</span>
+          )}
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className={`mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-gray-500" />
+            <span className="font-semibold text-gray-700">Filtrar por:</span>
+            {activeFilter !== 'all' && (
+              <button
+                onClick={() => setActiveFilter('all')}
+                className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-4 h-4" />
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {filterOptions.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setActiveFilter(filter.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeFilter === filter.value
+                    ? 'bg-pink-500 text-white shadow-md scale-105'
+                    : filter.color
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 gap-8">
-          {activities.map((activity, index) => (
-            <div key={index} className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="flex flex-col md:flex-row">
-                {/* Left Color Strip/Icon Area */}
-                <div className={`${activity.color} p-8 flex flex-col items-center justify-center md:w-48 text-center shrink-0`}>
-                  <div className="bg-white p-4 rounded-full shadow-sm mb-3">
-                    <Star className={`w-8 h-8 ${activity.iconColor}`} />
+      {/* Results count */}
+      {activeFilter !== 'all' && (
+        <div className="mb-6 flex items-center gap-2 text-gray-600">
+          {activeFilter === 'popular' && <TrendingUp className="w-5 h-5 text-orange-500" />}
+          <span>
+            {atividades.length} {atividades.length === 1 ? 'resultado' : 'resultados'}
+            {activeFilter !== 'popular' && (
+              <> em <strong>{categoryLabels[activeFilter]}</strong></>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {atividades.length === 0 ? (
+        <div className="text-center py-16">
+          <Scissors className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg">
+            {activeFilter === 'all' 
+              ? 'Nenhuma atividade disponível no momento'
+              : 'Nenhuma atividade encontrada nesta categoria'
+            }
+          </p>
+          {activeFilter !== 'all' && (
+            <button
+              onClick={() => setActiveFilter('all')}
+              className="mt-4 text-pink-500 font-medium hover:underline"
+            >
+              Ver todas as atividades
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {atividades.map((atividade) => (
+            <div 
+              key={atividade.id} 
+              className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group"
+            >
+              {/* Image */}
+              <div className="relative">
+                {atividade.imageUrl ? (
+                  <div className="aspect-video overflow-hidden">
+                    <img
+                      src={atividade.imageUrl}
+                      alt={atividade.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   </div>
-                  <span className={`font-bold ${activity.iconColor} text-lg`}>{activity.subject}</span>
-                  <div className="mt-4 bg-white/50 backdrop-blur-sm px-3 py-1 rounded-lg font-bold text-gray-800 border border-black/5">
-                    {activity.price}
+                ) : (
+                  <div className="aspect-video bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center">
+                    <Scissors className="w-16 h-16 text-yellow-500 opacity-50" />
                   </div>
+                )}
+                {/* Category Badge */}
+                {atividade.category && atividade.category !== 'geral' && (
+                  <div className="absolute top-3 left-3">
+                    <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium shadow-sm">
+                      {categoryLabels[atividade.category]}
+                    </span>
+                  </div>
+                )}
+                {/* Popular Badge */}
+                {(atividade.purchaseCount || 0) > 10 && (
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> Popular
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-grow">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
+                    ✂️ Atividade
+                  </span>
+                  <span className="text-2xl font-bold text-pink-600">
+                    {formatPrice(atividade.price)}
+                  </span>
                 </div>
 
-                {/* Content Area */}
-                <div className="p-8 flex-grow">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4 gap-4">
-                    <h2 className="text-2xl font-bold text-gray-800">{activity.title}</h2>
-                    <div className="flex flex-wrap gap-3">
-                      <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
-                        <Users className="w-4 h-4" /> {activity.ageGroup}
-                      </span>
-                      <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
-                        <Clock className="w-4 h-4" /> {activity.duration}
-                      </span>
-                    </div>
-                  </div>
+                <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                  {atividade.title}
+                </h2>
 
-                  <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-                    {activity.description}
+                {atividade.description && (
+                  <p className="text-gray-600 mb-4 line-clamp-3 flex-grow">
+                    {atividade.description}
                   </p>
+                )}
 
-                  <div className="mb-6">
-                    <h3 className="font-bold text-gray-700 mb-2">Materiais Necessários:</h3>
-                    <ul className="list-disc list-inside text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1">
-                      {activity.materials.map((material, idx) => (
-                        <li key={idx}>{material}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button 
-                      onClick={() => addToCart({
-                        id: `activity-${index}`,
-                        title: activity.title,
-                        price: parseFloat(activity.price.replace('R$ ', '').replace(',', '.')),
-                        type: 'atividade'
-                      })}
-                      className="flex items-center gap-2 bg-pink-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-pink-600 transition-colors shadow-md hover:shadow-lg active:scale-95 duration-100"
-                    >
-                      <ShoppingBag className="w-5 h-5" />
-                      Adicionar ao Carrinho
-                    </button>
-                  </div>
-                </div>
+                <button 
+                  onClick={() => addToCart({
+                    id: atividade.id,
+                    title: atividade.title,
+                    price: atividade.price,
+                    type: 'atividade'
+                  })}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-pink-600 hover:to-pink-700 transition-all shadow-md hover:shadow-lg active:scale-95 duration-100"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  Adicionar
+                </button>
               </div>
             </div>
           ))}
         </div>
-      </div>
-    </>
+      )}
+    </div>
   );
 }

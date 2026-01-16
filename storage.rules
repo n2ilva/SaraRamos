@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// Firebase Storage Rules para Sara Ramos
+// Cole essas regras em: Firebase Console -> Storage -> Rules
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Produtos - imagens dos produtos
+    match /products/{allPaths=**} {
+      // Qualquer pessoa pode visualizar imagens dos produtos
+      allow read: if true;
+      
+      // Apenas usuários autenticados podem fazer upload
+      // (a verificação de admin é feita no lado do cliente)
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024 // max 5MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Regra padrão: negar tudo que não foi explicitamente permitido
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
