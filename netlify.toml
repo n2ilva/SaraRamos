@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  # Prevent Netlify from failing the build when public env vars are detected in client code
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_URL,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
