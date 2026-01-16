@@ -5,6 +5,15 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Define environment variables for all contexts to control Secret Scanning
 [build.environment]
-  # Prevent Netlify from failing the build when public env vars are detected in client code
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_URL,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+
+[context.production.environment]
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_URL,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+
+[context.deploy-preview.environment]
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_URL,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+
+[context.branch-deploy.environment]
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_URL,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
