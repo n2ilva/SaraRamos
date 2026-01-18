@@ -29,16 +29,16 @@ export type ProductCategory =
   | 'geral';           // Conteúdo Geral
 
 export const categoryLabels: Record<ProductCategory, string> = {
-  'alfabetizacao': '📖 Aprendendo a Ler',
-  'escrita': '✏️ Aprendendo a Escrever',
-  'matematica': '🔢 Matemática',
-  'logica': '🧩 Lógica e Raciocínio',
-  'coordenacao': '✋ Coordenação Motora',
-  'artes': '🎨 Artes e Criatividade',
-  'ciencias': '🔬 Ciências e Natureza',
-  'musica': '🎵 Musicalização',
+  'alfabetizacao': '🔡 Alfabetização e Leitura',
+  'escrita': '✍️ Escrita e Caligrafia',
+  'matematica': '🧮 Matemática Divertida',
+  'logica': '🧠 Lógica e Raciocínio',
+  'coordenacao': '🤸 Coordenação Motora',
+  'artes': '🎨 Artes e Cores',
+  'ciencias': '🦖 Natureza e Ciências',
+  'musica': '🎼 Musicalização',
   'socioemocional': '💝 Socioemocional',
-  'geral': '📚 Geral',
+  'geral': '✨ Diversos',
 };
 
 // Product Type
@@ -47,12 +47,15 @@ export interface Product {
   title: string;
   description: string;
   price: number; // in cents (BRL)
-  type: 'video' | 'jogo' | 'atividade' | 'pacote';
+  type: 'video' | 'jogo' | 'atividade';
   category?: ProductCategory;
   imageUrl?: string;
+  downloadUrl?: string; // URL to download the product content
   stripePaymentLink?: string;
   isActive: boolean;
   purchaseCount?: number; // For "most purchased" filter
+  ageRange?: string; // e.g. "0-2 anos", "3-5 anos"
+  downloadPath?: string; // Secure path in Storage (not public URL)
   createdAt: string;
   updatedAt: string;
 }
@@ -183,6 +186,17 @@ export const ProductsProvider = ({ children }: { children: ReactNode }) => {
         } catch (imgError) {
           console.error('Error deleting image:', imgError);
           // Continue to delete document even if image deletion fails
+        }
+      }
+
+      // Delete digital file from storage if exists
+      if (product?.downloadPath) {
+        try {
+          const fileRef = ref(storage, product.downloadPath);
+          await deleteObject(fileRef);
+        } catch (fileError) {
+          console.error('Error deleting digital file:', fileError);
+          // Continue to delete document even if file deletion fails
         }
       }
 

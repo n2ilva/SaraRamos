@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Video, ShoppingBag, Loader2, Filter, TrendingUp, X, Play } from 'lucide-react';
+import Link from 'next/link';
+import WatermarkedImage from '../../components/WatermarkedImage';
 import { useCart } from '../../context/CartContext';
 import { useProducts, ProductCategory, categoryLabels } from '../../context/ProductsContext';
 
@@ -21,10 +23,20 @@ const filterOptions: { value: FilterType; label: string; color: string }[] = [
   { value: 'socioemocional', label: '💝 Socioemocional', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
 ];
 
+const ageOptions = [
+  { value: 'all', label: 'Todas as Idades' },
+  { value: '0-2', label: '🍼 0-2 anos' },
+  { value: '3-4', label: '🪁 3-4 anos' },
+  { value: '5-6', label: '🚀 5-6 anos' },
+  { value: '7-9', label: '🛸 7-9 anos' },
+  { value: '10+', label: '🪐 10+ anos' },
+];
+
 export default function VideosPage() {
   const { addToCart } = useCart();
   const { products, loading } = useProducts();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeAgeFilter, setActiveAgeFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
   // Filter only active "video" products
@@ -39,8 +51,13 @@ export default function VideosPage() {
       filtered = filtered.filter(p => p.category === activeFilter);
     }
 
+    // Apply age filter
+    if (activeAgeFilter !== 'all') {
+      filtered = filtered.filter(p => p.ageRange === activeAgeFilter || p.ageRange === 'todas');
+    }
+
     return filtered;
-  }, [products, activeFilter]);
+  }, [products, activeFilter, activeAgeFilter]);
 
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -115,6 +132,27 @@ export default function VideosPage() {
               </button>
             ))}
           </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-100">
+             <div className="flex items-center gap-2 mb-4">
+              <span className="font-semibold text-gray-700">Faixa Etária:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ageOptions.map((age) => (
+                <button
+                  key={age.value}
+                  onClick={() => setActiveAgeFilter(age.value)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                    activeAgeFilter === age.value
+                      ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600'
+                  }`}
+                >
+                  {age.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -152,47 +190,52 @@ export default function VideosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {videos.map((video) => (
+          {videos.map((video, index) => (
             <div 
               key={video.id} 
               className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group"
             >
               {/* Thumbnail */}
-              <div className="relative aspect-video overflow-hidden">
-                {video.imageUrl ? (
-                  <img
-                    src={video.imageUrl}
-                    alt={video.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                    <Video className="w-16 h-16 text-purple-500 opacity-50" />
+              <Link href={`/pages/produto/${video.id}`} className="block relative cursor-pointer">
+                <div className="relative aspect-video overflow-hidden">
+                  {video.imageUrl ? (
+                    <WatermarkedImage
+                      src={video.imageUrl}
+                      alt={video.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority={index < 4}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                      <Video className="w-16 h-16 text-purple-500 opacity-50" />
+                    </div>
+                  )}
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                    <div className="bg-white/90 p-4 rounded-full shadow-lg transform group-hover:scale-110 transition-transform">
+                      <Play className="w-8 h-8 text-pink-600 fill-current" />
+                    </div>
                   </div>
-                )}
-                {/* Play button overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-white/90 p-4 rounded-full shadow-lg">
-                    <Play className="w-8 h-8 text-pink-600 fill-current" />
-                  </div>
+                  {/* Category Badge */}
+                  {video.category && video.category !== 'geral' && (
+                    <div className="absolute top-3 left-3 z-10">
+                      <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium shadow-sm">
+                        {categoryLabels[video.category]}
+                      </span>
+                    </div>
+                  )}
+                  {/* Popular Badge */}
+                  {(video.purchaseCount || 0) > 10 && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" /> Popular
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {/* Category Badge */}
-                {video.category && video.category !== 'geral' && (
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium shadow-sm">
-                      {categoryLabels[video.category]}
-                    </span>
-                  </div>
-                )}
-                {/* Popular Badge */}
-                {(video.purchaseCount || 0) > 10 && (
-                  <div className="absolute top-3 right-3">
-                    <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" /> Popular
-                    </span>
-                  </div>
-                )}
-              </div>
+              </Link>
 
               {/* Content */}
               <div className="p-6 flex flex-col flex-grow">
@@ -200,9 +243,11 @@ export default function VideosPage() {
                   🎬 Vídeo Educativo
                 </span>
 
-                <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                  {video.title}
-                </h2>
+                <Link href={`/pages/produto/${video.id}`} className="hover:text-pink-600 transition-colors">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                    {video.title}
+                  </h2>
+                </Link>
 
                 {video.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3 flex-grow">

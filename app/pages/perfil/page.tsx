@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '../../context/AuthContext';
+import { useProducts } from '../../context/ProductsContext';
 import { 
   ShoppingBag, 
   Calendar, 
@@ -12,14 +13,16 @@ import {
   Gift,
   Download,
   Play,
-  ExternalLink
+  Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function ProfilePage() {
   const { user, logout, loading } = useAuth();
+  const { products } = useProducts();
   const router = useRouter();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -74,6 +77,48 @@ export default function ProfilePage() {
     }).format(cents / 100);
   };
 
+  const handleDownload = async (productId: string) => {
+    if (downloadingId) return;
+
+    try {
+      setDownloadingId(productId);
+      // Cast para any pois a interface User do contexto pode não estar expondo todos os métodos do Firebase User
+      const token = await (user as any)?.getIdToken?.();
+
+      if (!token) {
+        alert('Erro de autenticação. Tente fazer login novamente.');
+        return;
+      }
+
+      const response = await fetch('/api/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao gerar download');
+      }
+
+      if (data.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('URL de download não recebida');
+      }
+
+    } catch (error) {
+      console.error('Download fail:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao baixar arquivo. Tente novamente.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* Header */}
@@ -123,50 +168,77 @@ export default function ProfilePage() {
         <div className="space-y-8">
           {/* Purchased Items List */}
           <div className="grid grid-cols-1 gap-6">
-            {user.purchases.flatMap(purchase => purchase.items).map((item, idx) => (
-              <div key={`${item.title}-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row items-center gap-6 hover:shadow-md transition-shadow">
-                {/* Icon */}
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${getProductColor(item.type)}`}>
-                  {getProductIcon(item.type)}
-                </div>
-
-                {/* Info */}
-                <div className="flex-grow text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${getProductColor(item.type)} bg-opacity-10`}>
-                      {item.type}
-                    </span>
+            {user.purchases.flatMap(purchase => purchase.items).map((item, idx) => {
+              const productMatch = products.find(p => p.title === item.title); // Fallback match by title
+              
+              return (
+                <div key={`${item.title}-${idx}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row items-center gap-6 hover:shadow-md transition-shadow">
+                  {/* Icon */}
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${getProductColor(item.type)}`}>
+                    {getProductIcon(item.type)}
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800">{item.title}</h3>
-                  <p className="text-green-600 font-medium text-sm mt-1">
-                    Comprado
-                  </p>
-                </div>
 
-                {/* Action Button */}
-                <button className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-sm ${
-                  item.type === 'video' 
-                    ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-purple-200' 
-                    : item.type === 'jogo'
-                    ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-200'
-                    : 'bg-pink-500 hover:bg-pink-600 text-white shadow-pink-200'
-                }`}>
-                  {item.type === 'video' ? (
-                    <>
-                      <Play className="w-5 h-5" /> Assistir
-                    </>
-                  ) : item.type === 'jogo' ? (
-                    <>
-                      <Gamepad className="w-5 h-5" /> Jogar
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5" /> Baixar
-                    </>
-                  )}
-                </button>
-              </div>
-            ))}
+                  {/* Info */}
+                  <div className="flex-grow text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${getProductColor(item.type)} bg-opacity-10`}>
+                        {item.type}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800">{item.title}</h3>
+                    <p className="text-green-600 font-medium text-sm mt-1">
+                      Comprado
+                    </p>
+                  </div>
+
+                  {/* Action Button */}
+                  <button 
+                    onClick={() => {
+                        // Priority to secure download path logic
+                        // If it's a "pacote" or generic item without explicit ID match, we fallback or warn.
+                        // Ideally "item.id" should be the product ID. Let's check if item has ID.
+                        // Assuming item structure from addPurchase has ID.
+                        const productId = productMatch?.id || (item as any).id;
+                        
+                        if (productId && (item.type === 'atividade' || item.type === 'jogo' || item.type === 'pacote')) {
+                           handleDownload(productId);
+                        } else if (productMatch?.downloadUrl) {
+                           // Fallback legacy (will fail with new rules but keeps logic safe)
+                           window.open(productMatch.downloadUrl, '_blank');
+                        } else {
+                           alert('Conteúdo digital não encontrado.');
+                        }
+                    }}
+                    disabled={downloadingId === (productMatch?.id || (item as any).id)}
+                    className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-sm ${
+                    item.type === 'video' 
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-purple-200' 
+                      : item.type === 'jogo'
+                      ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-200'
+                      : 'bg-pink-500 hover:bg-pink-600 text-white shadow-pink-200'
+                  }`}>
+                    {item.type === 'video' ? (
+                      <>
+                        <Play className="w-5 h-5" /> Assistir
+                      </>
+                    ) : item.type === 'jogo' ? (
+                      <>
+                        <Gamepad className="w-5 h-5" /> Jogar
+                      </>
+                    ) : (
+                      <>
+                        {downloadingId === (productMatch?.id || (item as any).id) ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Download className="w-5 h-5" />
+                        )} 
+                        Baixar
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           {/* Purchase History Accordion (more compact) */}

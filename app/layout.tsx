@@ -7,7 +7,10 @@ import { AuthProvider } from './context/AuthContext';
 import { ProductsProvider } from './context/ProductsContext';
 import CartSidebar from './components/CartSidebar';
 
-const outfit = Outfit({ subsets: ['latin'] });
+const outfit = Outfit({ 
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'Professora Sara - Educação Infantil',

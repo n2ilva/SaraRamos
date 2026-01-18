@@ -5,19 +5,30 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Produtos - imagens dos produtos
+  
+    // Função auxiliar para verificar admin
+    function isAdmin() {
+      return request.auth != null && 
+        request.auth.token.email in ['natanael2ilva@gmail.com', 'sararamos.prof@gmail.com', 'sararamos.souza@gmail.com'];
+    }
+
+    // Produtos - imagens dos produtos (PÚBLICAS para o site funcionar)
     match /products/{allPaths=**} {
-      // Qualquer pessoa pode visualizar imagens dos produtos
       allow read: if true;
       
-      // Apenas usuários autenticados podem fazer upload
-      // (a verificação de admin é feita no lado do cliente)
-      allow write: if request.auth != null
-                   && request.resource.size < 5 * 1024 * 1024 // max 5MB
-                   && request.resource.contentType.matches('image/.*');
+      // Upload/Update/Delete apenas Admin
+      allow write: if isAdmin();
+    }
+
+    // Downloads Digitais - PDFs, ZIPs, etc. (PRIVADO TOTAL)
+    // Ninguem lê via Client SDK (bloqueia acesso direto via URL pública antiga)
+    // O download só funciona via API (Admin SDK)
+    match /digital-downloads/{allPaths=**} {
+      allow read: if false; 
+      allow write: if isAdmin();
     }
     
-    // Regra padrão: negar tudo que não foi explicitamente permitido
+    // Regra padrão: negar tudo
     match /{allPaths=**} {
       allow read, write: if false;
     }

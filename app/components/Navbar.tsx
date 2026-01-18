@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Home, Video, Gamepad, Mail, Scissors, ShoppingCart, Menu, X, User, Settings } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -10,6 +10,26 @@ const Navbar = () => {
   const { toggleCart, items } = useCart();
   const { user, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
+
+  // ... (rest of the component)
 
   const navItems = [
     { name: 'Início', href: '/', icon: Home },
@@ -20,14 +40,13 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-white shadow-sm border-b-4 border-pink-200 sticky top-0 z-50">
+    <nav ref={navRef} className="bg-white shadow-sm border-b-4 border-pink-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20">
+          {/* ... (rest of JSX) */}
+
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="bg-pink-100 p-2 rounded-full group-hover:bg-pink-200 transition-colors">
-                <span className="text-2xl">👩‍🏫</span>
-              </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-400 bg-clip-text text-transparent">
                 Profª Sara
               </span>

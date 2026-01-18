@@ -1,37 +1,36 @@
 rules_version = '2';
 
 // Firebase Firestore Rules para Sara Ramos
-// Cole essas regras em: Firebase Console -> Firestore Database -> Rules
+// IMPORTANTE: Copie TUDO e substitua em: Firebase Console -> Firestore Database -> Rules
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Users collection - dados dos usuários
+    // Função para verificar se é admin (com tratamento de erro se email faltar)
+    function isAdmin() {
+      return request.auth != null 
+          && request.auth.token.email != null
+          && request.auth.token.email in ['natanael2ilva@gmail.com', 'sararamos.prof@gmail.com', 'sararamos.souza@gmail.com'];
+    }
+
+    // Coleção de usuários
     match /users/{userId} {
-      // Usuários podem ler seus próprios dados
-      allow read: if request.auth != null && request.auth.uid == userId;
-      
-      // Usuários podem criar seu documento no cadastro
-      allow create: if request.auth != null && request.auth.uid == userId;
-      
-      // Usuários podem atualizar seus próprios dados
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
     
-    // Products collection - produtos da plataforma
+    // Coleção de produtos
     match /products/{productId} {
-      // Qualquer pessoa pode visualizar produtos (mesmo sem login)
+      // Leitura PÚBLICA (qualquer um vê os produtos)
       allow read: if true;
       
-      // Apenas usuários autenticados podem criar/editar/excluir produtos
-      // (a verificação de admin é feita no lado do cliente)
-      allow create, update, delete: if request.auth != null;
+      // Escrita (Criar, Editar, Excluir) APENAS Admins da lista
+      allow write: if isAdmin();
     }
     
-    // Orders collection - pedidos (se usar no futuro)
+    // Coleção de pedidos (se houver)
     match /orders/{orderId} {
-      allow read: if request.auth != null 
-        && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null;
     }
   }

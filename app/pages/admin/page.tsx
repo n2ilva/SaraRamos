@@ -16,34 +16,45 @@ import {
   Video,
   Gamepad,
   Scissors,
-  Gift,
   Loader2,
   AlertCircle,
   CheckCircle,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  FileText,
+  Download,
+  Users
 } from 'lucide-react';
+import Image from 'next/image';
 
-type ProductType = 'video' | 'jogo' | 'atividade' | 'pacote';
+type ProductType = 'video' | 'jogo' | 'atividade';
 
 const productTypeOptions: { value: ProductType; label: string; icon: React.ReactNode }[] = [
   { value: 'atividade', label: 'Atividade', icon: <Scissors className="w-4 h-4" /> },
   { value: 'video', label: 'Vídeo', icon: <Video className="w-4 h-4" /> },
   { value: 'jogo', label: 'Jogo', icon: <Gamepad className="w-4 h-4" /> },
-  { value: 'pacote', label: 'Pacote', icon: <Gift className="w-4 h-4" /> },
 ];
 
 const categoryOptions: { value: ProductCategory; label: string }[] = [
-  { value: 'alfabetizacao', label: '📖 Aprendendo a Ler' },
-  { value: 'escrita', label: '✏️ Aprendendo a Escrever' },
-  { value: 'matematica', label: '🔢 Matemática' },
-  { value: 'logica', label: '🧩 Lógica e Raciocínio' },
-  { value: 'coordenacao', label: '✋ Coordenação Motora' },
-  { value: 'artes', label: '🎨 Artes e Criatividade' },
-  { value: 'ciencias', label: '🔬 Ciências e Natureza' },
-  { value: 'musica', label: '🎵 Musicalização' },
+  { value: 'alfabetizacao', label: '🔡 Alfabetização e Leitura' },
+  { value: 'escrita', label: '✍️ Escrita e Caligrafia' },
+  { value: 'matematica', label: '🧮 Matemática Divertida' },
+  { value: 'logica', label: '🧠 Lógica e Raciocínio' },
+  { value: 'coordenacao', label: '🤸 Coordenação Motora' },
+  { value: 'artes', label: '🎨 Artes e Cores' },
+  { value: 'ciencias', label: '🦖 Natureza e Ciências' },
+  { value: 'musica', label: '🎼 Musicalização' },
   { value: 'socioemocional', label: '💝 Socioemocional' },
-  { value: 'geral', label: '📚 Geral' },
+  { value: 'geral', label: '✨ Diversos' },
+];
+
+const ageRangeOptions = [
+  { value: '0-2', label: '🍼 0 a 2 anos' },
+  { value: '3-4', label: '🪁 3 a 4 anos' },
+  { value: '5-6', label: '🚀 5 a 6 anos' },
+  { value: '7-9', label: '🛸 7 a 9 anos' },
+  { value: '10+', label: '🪐 10 anos ou mais' },
+  { value: 'todas', label: '♾️ Todas as idades' },
 ];
 
 interface ProductForm {
@@ -52,7 +63,10 @@ interface ProductForm {
   price: string;
   type: ProductType;
   category: ProductCategory;
+  ageRange: string;
   imageUrl: string;
+  downloadUrl: string;
+  downloadPath: string;
   isActive: boolean;
 }
 
@@ -62,7 +76,10 @@ const initialForm: ProductForm = {
   price: '',
   type: 'atividade',
   category: 'geral',
+  ageRange: 'todas',
   imageUrl: '',
+  downloadUrl: '',
+  downloadPath: '',
   isActive: true,
 };
 
@@ -106,7 +123,11 @@ export default function AdminPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadFileProgress, setUploadFileProgress] = useState<string>('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const digitalFileInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not admin
   useEffect(() => {
@@ -178,11 +199,58 @@ export default function AdminPage() {
     }
   };
 
+  // Handle digital file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      showMessage('error', 'O arquivo deve ter no máximo 100MB');
+      return;
+    }
+
+    setUploadingFile(true);
+    setUploadFileProgress('Enviando arquivo...');
+
+    try {
+      const timestamp = Date.now();
+      const fileName = `digital-downloads/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const storageRef = ref(storage, fileName);
+
+      setUploadFileProgress('Fazendo upload...');
+      await uploadBytes(storageRef, file);
+
+      setUploadFileProgress('Obtendo URL...');
+      const downloadURL = await getDownloadURL(storageRef);
+      // We also store the full path for secure server-side generation
+      const fullPath = storageRef.fullPath;
+
+      setForm({ ...form, downloadUrl: downloadURL, downloadPath: fullPath });
+      setUploadFileProgress('');
+      showMessage('success', 'Arquivo anexado com sucesso!');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      showMessage('error', 'Erro ao enviar arquivo.');
+    } finally {
+      setUploadingFile(false);
+      setUploadFileProgress('');
+      if (digitalFileInputRef.current) {
+        digitalFileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!form.title || !form.price) {
       showMessage('error', 'Título e preço são obrigatórios');
+      return;
+    }
+
+    if (!form.downloadUrl) {
+      showMessage('error', 'O arquivo digital é obrigatório para todos os produtos');
       return;
     }
 
@@ -196,7 +264,10 @@ export default function AdminPage() {
         price: priceInCents,
         type: form.type,
         category: form.category,
-        imageUrl: form.imageUrl || undefined,
+        ageRange: form.ageRange,
+        imageUrl: form.imageUrl,
+        downloadUrl: form.downloadUrl,
+        downloadPath: form.downloadPath,
         isActive: form.isActive,
       };
 
@@ -225,7 +296,10 @@ export default function AdminPage() {
       price: formatCurrency(String(product.price)),
       type: product.type,
       category: product.category || 'geral',
+      ageRange: product.ageRange || 'todas',
       imageUrl: product.imageUrl || '',
+      downloadUrl: product.downloadUrl || '',
+      downloadPath: product.downloadPath || '',
       isActive: product.isActive,
     });
     setEditingId(product.id);
@@ -384,6 +458,24 @@ export default function AdminPage() {
                   </select>
                 </div>
 
+                {/* Age Range */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Faixa Etária
+                  </label>
+                  <select
+                    value={form.ageRange}
+                    onChange={(e) => setForm({ ...form, ageRange: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+                  >
+                    {ageRangeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Description */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -453,20 +545,83 @@ export default function AdminPage() {
 
                   {/* Image Preview */}
                   {form.imageUrl && (
-                    <div className="mt-4 relative inline-block">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                    <div className="mt-4 relative inline-block w-32 h-32 rounded-xl border border-gray-200 overflow-hidden">
+                      <Image
                         src={form.imageUrl}
                         alt="Preview"
-                        className="w-32 h-32 object-cover rounded-xl border border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect fill="%23f3f4f6" width="128" height="128"/><text x="50%" y="50%" text-anchor="middle" fill="%239ca3af" font-size="12">Erro</text></svg>';
-                        }}
+                        fill
+                        className="object-cover"
+                        unoptimized // Permite preview de URLs externas no admin sem whitelist rígida
                       />
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, imageUrl: '' })}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Digital File Upload */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FileText className="w-4 h-4 inline mr-1" />
+                    Arquivo Digital (para download após compra) *
+                  </label>
+                  
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <input
+                        ref={digitalFileInputRef}
+                        type="file"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="digital-file-upload"
+                      />
+                      <label
+                        htmlFor="digital-file-upload"
+                        className={`flex flex-col items-center justify-center gap-2 w-full px-4 py-6 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                          uploadingFile 
+                            ? 'border-blue-300 bg-blue-50 cursor-not-allowed' 
+                            : 'border-blue-200 bg-blue-50 hover:border-blue-500 hover:bg-blue-100'
+                        }`}
+                      >
+                        {uploadingFile ? (
+                          <>
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                            <span className="text-blue-600 font-medium">{uploadFileProgress}</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="bg-white p-3 rounded-full shadow-sm">
+                              <Upload className="w-6 h-6 text-blue-500" />
+                            </div>
+                            <div className="text-center">
+                              <span className="text-blue-700 font-bold block mb-1">
+                                {form.downloadUrl ? 'Substituir arquivo atual' : 'Adicionar Arquivo Digital'}
+                              </span>
+                              <span className="text-xs text-blue-500">
+                                PDF, ZIP, RAR (até 100MB)
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* File Preview/Status */}
+                  {form.downloadUrl && (
+                    <div className="mt-2 flex items-center gap-2 text-green-600 bg-green-50 p-2 rounded-lg border border-green-200 w-fit">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Arquivo anexado e pronto para venda!</span>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, downloadUrl: '' })}
+                        className="ml-2 text-red-500 hover:bg-red-100 p-1 rounded transition-colors"
+                        title="Remover anexo"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -494,7 +649,7 @@ export default function AdminPage() {
               <div className="flex gap-4 pt-4 border-t border-gray-100">
                 <button
                   type="submit"
-                  disabled={saving || uploading}
+                  disabled={saving || uploading || uploadingFile}
                   className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50"
                 >
                   {saving ? (
@@ -537,21 +692,21 @@ export default function AdminPage() {
             <div className="divide-y divide-gray-100">
               {products.map((product) => (
                 <div key={product.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-4 w-full sm:w-auto">
                       {/* Product Image or Icon */}
                       {product.imageUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={product.imageUrl}
-                          alt={product.title}
-                          className="w-12 h-12 rounded-xl object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                          <Image
+                            src={product.imageUrl}
+                            alt={product.title}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                          />
+                        </div>
                       ) : (
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${
                           product.type === 'video' ? 'bg-purple-100' :
                           product.type === 'jogo' ? 'bg-green-100' :
                           product.type === 'atividade' ? 'bg-yellow-100' :
@@ -563,22 +718,34 @@ export default function AdminPage() {
                            '🎁'}
                         </div>
                       )}
-                      <div>
-                        <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                          {product.title}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-gray-800 flex flex-wrap items-center gap-2">
+                          <span className="truncate">{product.title}</span>
                           {!product.isActive && (
-                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full whitespace-nowrap">
                               Inativo
                             </span>
                           )}
                         </h3>
-                        <p className="text-sm text-gray-500 capitalize flex items-center gap-2">
+                        <p className="text-sm text-gray-500 capitalize flex flex-wrap items-center gap-2 mt-1">
                           {product.type}
+                          {product.downloadUrl && (
+                             <span className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                               <Download className="w-3 h-3" />
+                               Digital
+                             </span>
+                          )}
+                          {product.ageRange && (
+                             <span className="flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                               <Users className="w-3 h-3" />
+                               {ageRangeOptions.find(o => o.value === product.ageRange)?.label || product.ageRange}
+                             </span>
+                          )}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pl-16 sm:pl-0">
                       <span className="font-bold text-lg text-pink-600">
                         {formatPrice(product.price)}
                       </span>
@@ -596,7 +763,7 @@ export default function AdminPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleDelete(product.id)}
-                              className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
+                              className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 whitespace-nowrap"
                             >
                               Confirmar
                             </button>

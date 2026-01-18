@@ -1,15 +1,36 @@
 'use client';
 
+import { useState } from 'react';
 import { Gamepad, ShoppingBag, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import WatermarkedImage from '../../components/WatermarkedImage';
 import { useCart } from '../../context/CartContext';
 import { useProducts } from '../../context/ProductsContext';
+
+const ageOptions = [
+  { value: 'all', label: 'Todas as Idades' },
+  { value: '0-2', label: '🍼 0-2 anos' },
+  { value: '3-4', label: '🪁 3-4 anos' },
+  { value: '5-6', label: '🚀 5-6 anos' },
+  { value: '7-9', label: '🛸 7-9 anos' },
+  { value: '10+', label: '🪐 10+ anos' },
+];
 
 export default function JogosPage() {
   const { addToCart } = useCart();
   const { products, loading } = useProducts();
+  const [activeAgeFilter, setActiveAgeFilter] = useState('all');
 
   // Filter only active "jogo" products
-  const jogos = products.filter(p => p.type === 'jogo' && p.isActive);
+  const jogos = products.filter(p => {
+    const isJogo = p.type === 'jogo' && p.isActive;
+    if (!isJogo) return false;
+
+    if (activeAgeFilter !== 'all') {
+      return p.ageRange === activeAgeFilter || p.ageRange === 'todas';
+    }
+    return true;
+  });
 
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -38,6 +59,25 @@ export default function JogosPage() {
         </p>
       </div>
 
+      {/* Age Filters */}
+      <div className="mb-12 flex justify-center">
+        <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 inline-flex flex-wrap justify-center gap-2">
+           {ageOptions.map((age) => (
+            <button
+              key={age.value}
+              onClick={() => setActiveAgeFilter(age.value)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                activeAgeFilter === age.value
+                  ? 'bg-green-500 text-white shadow-md'
+                  : 'bg-transparent text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {age.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {jogos.length === 0 ? (
         <div className="text-center py-16">
           <Gamepad className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -46,37 +86,44 @@ export default function JogosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {jogos.map((jogo) => (
+          {jogos.map((jogo, index) => (
             <div 
               key={jogo.id} 
               className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group hover:-translate-y-1"
             >
               {/* Image */}
-              <div className="aspect-video overflow-hidden relative">
-                {jogo.imageUrl ? (
-                  <img
-                    src={jogo.imageUrl}
-                    alt={jogo.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
-                    <Gamepad className="w-16 h-16 text-green-500 opacity-50" />
+              <Link href={`/pages/produto/${jogo.id}`} className="block relative cursor-pointer">
+                <div className="aspect-video overflow-hidden relative">
+                  {jogo.imageUrl ? (
+                    <WatermarkedImage
+                      src={jogo.imageUrl}
+                      alt={jogo.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority={index < 4}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                      <Gamepad className="w-16 h-16 text-green-500 opacity-50" />
+                    </div>
+                  )}
+                  {/* Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                      🎮 Interativo
+                    </span>
                   </div>
-                )}
-                {/* Badge */}
-                <div className="absolute top-4 left-4">
-                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                    🎮 Interativo
-                  </span>
                 </div>
-              </div>
+              </Link>
 
               {/* Content */}
               <div className="p-6 flex flex-col flex-grow">
-                <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                  {jogo.title}
-                </h2>
+                <Link href={`/pages/produto/${jogo.id}`} className="hover:text-green-600 transition-colors">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                    {jogo.title}
+                  </h2>
+                </Link>
 
                 {jogo.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3 flex-grow">

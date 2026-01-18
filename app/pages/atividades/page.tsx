@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Scissors, ShoppingBag, Loader2, Filter, TrendingUp, X } from 'lucide-react';
+import Link from 'next/link';
+import WatermarkedImage from '../../components/WatermarkedImage';
 import { useCart } from '../../context/CartContext';
 import { useProducts, ProductCategory, categoryLabels } from '../../context/ProductsContext';
 
@@ -21,10 +23,20 @@ const filterOptions: { value: FilterType; label: string; color: string }[] = [
   { value: 'socioemocional', label: '💝 Socioemocional', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
 ];
 
+const ageOptions = [
+  { value: 'all', label: 'Todas as Idades' },
+  { value: '0-2', label: '🍼 0-2 anos' },
+  { value: '3-4', label: '🪁 3-4 anos' },
+  { value: '5-6', label: '🚀 5-6 anos' },
+  { value: '7-9', label: '🛸 7-9 anos' },
+  { value: '10+', label: '🪐 10+ anos' },
+];
+
 export default function AtividadesPage() {
   const { addToCart } = useCart();
   const { products, loading } = useProducts();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeAgeFilter, setActiveAgeFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
   // Filter only active "atividade" products
@@ -39,8 +51,13 @@ export default function AtividadesPage() {
       filtered = filtered.filter(p => p.category === activeFilter);
     }
 
+    // Apply age filter
+    if (activeAgeFilter !== 'all') {
+      filtered = filtered.filter(p => p.ageRange === activeAgeFilter || p.ageRange === 'todas');
+    }
+
     return filtered;
-  }, [products, activeFilter]);
+  }, [products, activeFilter, activeAgeFilter]);
 
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -115,6 +132,27 @@ export default function AtividadesPage() {
               </button>
             ))}
           </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-100">
+             <div className="flex items-center gap-2 mb-4">
+              <span className="font-semibold text-gray-700">Faixa Etária:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ageOptions.map((age) => (
+                <button
+                  key={age.value}
+                  onClick={() => setActiveAgeFilter(age.value)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                    activeAgeFilter === age.value
+                      ? 'bg-purple-500 text-white border-purple-500 shadow-md'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600'
+                  }`}
+                >
+                  {age.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -152,19 +190,22 @@ export default function AtividadesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {atividades.map((atividade) => (
+          {atividades.map((atividade, index) => (
             <div 
               key={atividade.id} 
               className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group"
             >
-              {/* Image */}
-              <div className="relative">
+              {/* Link Wrapper for Image */}
+              <Link href={`/pages/produto/${atividade.id}`} className="block relative cursor-pointer">
                 {atividade.imageUrl ? (
-                  <div className="aspect-video overflow-hidden">
-                    <img
+                  <div className="aspect-video overflow-hidden relative">
+                    <WatermarkedImage
                       src={atividade.imageUrl}
                       alt={atividade.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority={index < 4}
                     />
                   </div>
                 ) : (
@@ -172,6 +213,9 @@ export default function AtividadesPage() {
                     <Scissors className="w-16 h-16 text-yellow-500 opacity-50" />
                   </div>
                 )}
+                {/* Visual overlay on hover */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 pointer-events-none" />
+                
                 {/* Category Badge */}
                 {atividade.category && atividade.category !== 'geral' && (
                   <div className="absolute top-3 left-3">
@@ -188,7 +232,7 @@ export default function AtividadesPage() {
                     </span>
                   </div>
                 )}
-              </div>
+              </Link>
 
               {/* Content */}
               <div className="p-6 flex flex-col flex-grow">
@@ -201,9 +245,11 @@ export default function AtividadesPage() {
                   </span>
                 </div>
 
-                <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                  {atividade.title}
-                </h2>
+                <Link href={`/pages/produto/${atividade.id}`} className="hover:text-pink-600 transition-colors">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                    {atividade.title}
+                  </h2>
+                </Link>
 
                 {atividade.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3 flex-grow">
