@@ -59,6 +59,28 @@ export default function JogosPage() {
         </p>
       </div>
 
+      {/* LogicLike Embedded Game */}
+      <div className="mb-16">
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-6 shadow-lg border border-purple-100">
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold text-purple-600 mb-2">🧠 Jogos de Lógica</h2>
+            <p className="text-gray-600">Desafie seu raciocínio com puzzles e quebra-cabeças!</p>
+          </div>
+          <div className="relative w-full rounded-2xl overflow-hidden shadow-xl bg-white" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              src="https://logiclike.com/pt-br/v3/cabinet/dashboard/logic"
+              className="absolute top-0 left-0 w-full h-full border-0"
+              title="Jogos de Lógica LogicLike"
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
+          <p className="text-sm text-gray-500 text-center mt-4">
+            Powered by LogicLike
+          </p>
+        </div>
+      </div>
+
       {/* Age Filters */}
       <div className="mb-12 flex justify-center">
         <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 inline-flex flex-wrap justify-center gap-2">
